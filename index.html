@@ -6,6 +6,26 @@
     <script type="module" crossorigin src="./assets/main-CSnAiloz.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/main-QEkl09-0.css">
     <style>
+      /* ── Hide React Chat UI (keep only Live2D canvas) ── */
+      #root {
+        pointer-events: none !important;
+        z-index: 0 !important;
+      }
+      #root * {
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+      #root canvas {
+        visibility: visible !important;
+        pointer-events: auto !important;
+        position: relative !important;
+        z-index: 1 !important;
+      }
+      /* Hide toast notifications */
+      .Toastify, [class*="Toastify"] {
+        display: none !important;
+      }
+
       /* ── VTuber Status Overlay ── */
       #vtuber-status-overlay {
         position: fixed;
@@ -31,14 +51,17 @@
         pointer-events: auto;
         cursor: move;
         user-select: none;
+        position: relative;
       }
+      /* removed resize handle - using scroll instead */
 
       /* ── Live2D Reset Button ── */
       #live2d-reset-btn {
         position: fixed;
         top: 12px;
         right: 12px;
-        z-index: 9999;
+        z-index: 99999;
+        pointer-events: auto;
         width: 36px;
         height: 36px;
         border-radius: 50%;
@@ -56,13 +79,107 @@
       #live2d-reset-btn:hover {
         background: rgba(0, 0, 0, 0.8);
       }
+
+      /* ── Status Settings Button ── */
+      #status-settings-btn {
+        position: fixed;
+        bottom: 12px;
+        left: 12px;
+        z-index: 99999;
+        pointer-events: auto;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(8px);
+        color: #fff;
+        font-size: 18px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+      }
+      #status-settings-btn:hover {
+        background: rgba(0, 0, 0, 0.8);
+      }
+
+      /* ── Status Settings Panel ── */
+      #status-settings-panel {
+        position: fixed;
+        bottom: 60px;
+        left: 12px;
+        z-index: 100000;
+        pointer-events: auto;
+        background: rgba(20, 20, 20, 0.95);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 16px;
+        min-width: 280px;
+        color: #fff;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 13px;
+        display: none;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      }
+      #status-settings-panel.visible {
+        display: block;
+      }
+      #status-settings-panel h3 {
+        margin: 0 0 12px 0;
+        font-size: 15px;
+        font-weight: 600;
+      }
+      #status-settings-panel label {
+        display: block;
+        margin: 10px 0 4px 0;
+        font-size: 12px;
+        opacity: 0.8;
+      }
+      #status-settings-panel input[type="color"],
+      #status-settings-panel input[type="range"],
+      #status-settings-panel input[type="number"],
+      #status-settings-panel select {
+        width: 100%;
+        margin-bottom: 8px;
+      }
+      #status-settings-panel input[type="range"] {
+        cursor: pointer;
+      }
+      #status-settings-panel input[type="checkbox"] {
+        margin-right: 6px;
+        cursor: pointer;
+      }
+      .settings-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 8px 0;
+      }
+      .settings-row input[type="color"] {
+        width: 50px;
+        height: 30px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .settings-row input[type="number"] {
+        width: 60px;
+        padding: 4px 8px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
     </style>
   </head>
 
   <body>
     <div id="root"></div>
 
-    <!-- VTuber Status Overlay (생각 중 / 도구 실행 표시) -->
+    <!-- VTuber Status Overlay -->
     <div id="vtuber-status-overlay">
       <div class="status-pill" id="vtuber-status-text"></div>
     </div>
@@ -70,12 +187,171 @@
     <!-- Live2D Position Reset Button -->
     <button id="live2d-reset-btn" title="Live2D 위치 리셋">↺</button>
 
+    <!-- Status Settings Button -->
+    <button id="status-settings-btn" title="상태 표시 설정">⚙️</button>
+
+    <!-- Status Settings Panel -->
+    <div id="status-settings-panel">
+      <h3>상태 표시 설정</h3>
+      
+      <label>배경색</label>
+      <div class="settings-row">
+        <input type="color" id="setting-bg-color" value="#000000">
+        <label style="margin: 0;">투명도</label>
+        <input type="range" id="setting-bg-opacity" min="0" max="100" value="70" style="width: 100px;">
+        <span id="opacity-value">70%</span>
+      </div>
+
+      <label>글자색</label>
+      <input type="color" id="setting-text-color" value="#ffffff">
+
+      <label>글자 크기 (px)</label>
+      <input type="number" id="setting-font-size" min="10" max="30" value="14">
+
+      <label>위치</label>
+      <select id="setting-position">
+        <option value="top">상단</option>
+        <option value="bottom">하단</option>
+      </select>
+
+      <div class="settings-row" style="margin-top: 12px;">
+        <input type="checkbox" id="setting-visible" checked>
+        <label style="margin: 0;">상태 표시 보이기</label>
+      </div>
+
+      <button id="setting-edit-btn" style="
+        margin-top: 10px; width: 100%; padding: 6px 12px;
+        border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
+        background: rgba(255,255,255,0.1); color: #fff;
+        cursor: pointer; font-size: 13px;
+      ">✏️ 텍스트 편집</button>
+    </div>
+
     <script>
-      // ── Status Overlay (draggable) ──
+      // ══════════════════════════════════════════════════════════════
+      // ── Live2D Position/Scale Auto-Save & Restore ──
+      // ══════════════════════════════════════════════════════════════
+      (function() {
+        const STORAGE_KEY = 'live2d-transform';
+        let lastMatrix = null;
+
+        // 페이지 로드 시 저장된 매트릭스 복원
+        function restoreLive2DTransform() {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (!saved) return;
+
+          try {
+            const data = JSON.parse(saved);
+            const mgr = window.getLive2DManager?.();
+            if (!mgr) return;
+
+            const model = mgr.getModel(0);
+            if (model && model._modelMatrix) {
+              const arr = model._modelMatrix.getArray();
+              arr[0] = data.scaleX;
+              arr[5] = data.scaleY;
+              arr[12] = data.translateX;
+              arr[13] = data.translateY;
+              model._modelMatrix.setMatrix(arr);
+              console.log('[Live2D] Transform restored:', data);
+            }
+          } catch (e) {
+            console.error('[Live2D] Failed to restore transform:', e);
+          }
+        }
+
+        // 주기적으로 매트릭스 체크하고 변경시 저장
+        function autoSaveTransform() {
+          const mgr = window.getLive2DManager?.();
+          if (!mgr) return;
+
+          const model = mgr.getModel(0);
+          if (model && model._modelMatrix) {
+            const arr = model._modelMatrix.getArray();
+            const current = {
+              scaleX: arr[0],
+              scaleY: arr[5],
+              translateX: arr[12],
+              translateY: arr[13]
+            };
+
+            // 변경 감지
+            if (!lastMatrix || 
+                Math.abs(lastMatrix.scaleX - current.scaleX) > 0.001 ||
+                Math.abs(lastMatrix.scaleY - current.scaleY) > 0.001 ||
+                Math.abs(lastMatrix.translateX - current.translateX) > 0.001 ||
+                Math.abs(lastMatrix.translateY - current.translateY) > 0.001) {
+              
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
+              lastMatrix = current;
+            }
+          }
+        }
+
+        // 모델이 로드될 때까지 대기 후 복원
+        let retryCount = 0;
+        const waitForModel = setInterval(() => {
+          const mgr = window.getLive2DManager?.();
+          if (mgr && mgr.getModel(0)) {
+            clearInterval(waitForModel);
+            restoreLive2DTransform();
+            // 복원 후 자동 저장 시작
+            setInterval(autoSaveTransform, 500);
+          } else if (++retryCount > 40) { // 20초 timeout
+            clearInterval(waitForModel);
+            console.warn('[Live2D] Model load timeout');
+          }
+        }, 500);
+      })();
+
+      // ══════════════════════════════════════════════════════════════
+      // ── Status Overlay (draggable + save position) ──
+      // ══════════════════════════════════════════════════════════════
       (function() {
         const overlay = document.getElementById('vtuber-status-overlay');
         const textEl = document.getElementById('vtuber-status-text');
+        const pill = textEl; // status-pill element
+        const POSITION_KEY = 'status-overlay-position';
+        const SIZE_KEY = 'status-pill-size';
         let isDragging = false, offsetX = 0, offsetY = 0;
+
+        // 위치 복원
+        function restorePosition() {
+          const saved = localStorage.getItem(POSITION_KEY);
+          if (saved) {
+            try {
+              const pos = JSON.parse(saved);
+              overlay.style.left = pos.left;
+              overlay.style.top = pos.top;
+              overlay.style.transform = pos.transform || 'none';
+            } catch (e) {}
+          }
+        }
+
+        // 위치 저장
+        function savePosition() {
+          const pos = {
+            left: overlay.style.left,
+            top: overlay.style.top,
+            transform: overlay.style.transform
+          };
+          localStorage.setItem(POSITION_KEY, JSON.stringify(pos));
+        }
+
+        // Scroll to resize pill
+        pill.addEventListener('wheel', (e) => {
+          e.preventDefault();
+          const cs = getComputedStyle(pill);
+          const curFs = parseFloat(cs.fontSize);
+          const curPadV = parseFloat(cs.paddingTop);
+          const curPadH = parseFloat(cs.paddingLeft);
+          const delta = e.deltaY > 0 ? -1 : 1;
+          const newFs = Math.max(8, Math.min(40, curFs + delta));
+          const ratio = newFs / curFs;
+          pill.style.fontSize = newFs + 'px';
+          pill.style.padding = Math.round(curPadV * ratio) + 'px ' + Math.round(curPadH * ratio) + 'px';
+          savePillSize();
+        }, { passive: false });
 
         overlay.addEventListener('mousedown', (e) => {
           isDragging = true;
@@ -83,22 +359,52 @@
           offsetY = e.clientY - overlay.getBoundingClientRect().top;
           overlay.style.transition = 'none';
         });
+
         document.addEventListener('mousemove', (e) => {
           if (!isDragging) return;
           overlay.style.left = (e.clientX - offsetX) + 'px';
           overlay.style.top = (e.clientY - offsetY) + 'px';
           overlay.style.transform = 'none';
         });
-        document.addEventListener('mouseup', () => { isDragging = false; });
 
-        // Connect to A2F WS bridge for status updates
+        document.addEventListener('mouseup', () => {
+          if (isDragging) {
+            isDragging = false;
+            savePosition();
+          }
+        });
+
+        // Pill size save/restore
+        function savePillSize() {
+          const cs = getComputedStyle(pill);
+          localStorage.setItem(SIZE_KEY, JSON.stringify({
+            fontSize: cs.fontSize,
+            padding: cs.padding
+          }));
+        }
+        function restorePillSize() {
+          const saved = localStorage.getItem(SIZE_KEY);
+          if (saved) {
+            try {
+              const s = JSON.parse(saved);
+              pill.style.fontSize = s.fontSize;
+              pill.style.padding = s.padding;
+            } catch(e) {}
+          }
+        }
+
+        restorePosition();
+        restorePillSize();
+
+        // WebSocket 연결 (상태 업데이트)
         function connectStatusWS() {
           const wsUrl = 'ws://' + window.location.hostname + ':9870';
           const ws = new WebSocket(wsUrl);
+          
           ws.onmessage = (event) => {
             try {
               const msg = JSON.parse(event.data);
-              if (msg.type === 'status') {
+              if (msg.type === 'status' && !window._statusEditMode) {
                 const text = msg.status || '';
                 textEl.textContent = text;
                 if (text) {
@@ -107,7 +413,6 @@
                   overlay.classList.remove('visible');
                 }
               }
-              // A2F frames handling (for lip sync)
               if (msg.type === 'a2f-frames' && msg.frames) {
                 window.a2fBridgeFrames = msg.frames;
                 window.a2fBridgeFps = msg.fps || 30;
@@ -115,38 +420,227 @@
               }
             } catch(e) {}
           };
+          
           ws.onclose = () => setTimeout(connectStatusWS, 3000);
           ws.onerror = () => ws.close();
         }
         connectStatusWS();
       })();
 
+      // ══════════════════════════════════════════════════════════════
+      // ── Status Overlay Style Settings ──
+      // ══════════════════════════════════════════════════════════════
+      (function() {
+        const panel = document.getElementById('status-settings-panel');
+        const btn = document.getElementById('status-settings-btn');
+        const overlay = document.getElementById('vtuber-status-overlay');
+        const pill = overlay.querySelector('.status-pill');
+        const SETTINGS_KEY = 'status-overlay-settings';
+
+        // 기본 설정
+        const defaultSettings = {
+          bgColor: '#000000',
+          bgOpacity: 70,
+          textColor: '#ffffff',
+          fontSize: 14,
+          position: 'top',
+          visible: true
+        };
+
+        // 설정 로드
+        function loadSettings() {
+          const saved = localStorage.getItem(SETTINGS_KEY);
+          return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
+        }
+
+        // 설정 저장
+        function saveSettings(settings) {
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+        }
+
+        // 설정 적용
+        function applySettings(settings) {
+          // 배경색 + 투명도
+          const rgb = hexToRgb(settings.bgColor);
+          const alpha = settings.bgOpacity / 100;
+          pill.style.background = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+          
+          // 글자색
+          pill.style.color = settings.textColor;
+          
+          // 글자 크기
+          pill.style.fontSize = settings.fontSize + 'px';
+          
+          // 위치
+          if (settings.position === 'top') {
+            overlay.style.top = '18px';
+            overlay.style.bottom = 'auto';
+          } else {
+            overlay.style.top = 'auto';
+            overlay.style.bottom = '18px';
+          }
+          
+          // 표시 여부
+          overlay.style.display = settings.visible ? 'block' : 'none';
+        }
+
+        // UI 업데이트
+        function updateUI(settings) {
+          document.getElementById('setting-bg-color').value = settings.bgColor;
+          document.getElementById('setting-bg-opacity').value = settings.bgOpacity;
+          document.getElementById('opacity-value').textContent = settings.bgOpacity + '%';
+          document.getElementById('setting-text-color').value = settings.textColor;
+          document.getElementById('setting-font-size').value = settings.fontSize;
+          document.getElementById('setting-position').value = settings.position;
+          document.getElementById('setting-visible').checked = settings.visible;
+        }
+
+        // 헬퍼: hex → rgb
+        function hexToRgb(hex) {
+          const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+          return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+          } : { r: 0, g: 0, b: 0 };
+        }
+
+        // 초기 설정 적용
+        const settings = loadSettings();
+        applySettings(settings);
+        updateUI(settings);
+
+        // 설정 패널 토글
+        let _panelOpen = false;
+        function _togglePanel() {
+          _panelOpen = !_panelOpen;
+          panel.style.display = _panelOpen ? 'block' : 'none';
+        }
+        // 글로벌에서 CDP로도 호출 가능하게
+        window._toggleSettingsPanel = _togglePanel;
+
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          _togglePanel();
+        });
+
+        // 키보드 단축키: Ctrl+Shift+S
+        document.addEventListener('keydown', (e) => {
+          if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+            e.preventDefault();
+            _togglePanel();
+          }
+        });
+
+        panel.addEventListener('click', (e) => {
+          e.stopPropagation();
+        });
+
+        // 패널 외부 클릭시 닫기
+        document.addEventListener('click', (e) => {
+          if (_panelOpen && !panel.contains(e.target) && !btn.contains(e.target)) {
+            _panelOpen = false;
+            panel.style.display = 'none';
+          }
+        });
+
+        // 설정 변경 이벤트
+        document.getElementById('setting-bg-color').addEventListener('input', (e) => {
+          settings.bgColor = e.target.value;
+          applySettings(settings);
+          saveSettings(settings);
+        });
+
+        document.getElementById('setting-bg-opacity').addEventListener('input', (e) => {
+          settings.bgOpacity = parseInt(e.target.value);
+          document.getElementById('opacity-value').textContent = settings.bgOpacity + '%';
+          applySettings(settings);
+          saveSettings(settings);
+        });
+
+        document.getElementById('setting-text-color').addEventListener('input', (e) => {
+          settings.textColor = e.target.value;
+          applySettings(settings);
+          saveSettings(settings);
+        });
+
+        document.getElementById('setting-font-size').addEventListener('input', (e) => {
+          settings.fontSize = parseInt(e.target.value);
+          applySettings(settings);
+          saveSettings(settings);
+        });
+
+        document.getElementById('setting-position').addEventListener('change', (e) => {
+          settings.position = e.target.value;
+          applySettings(settings);
+          saveSettings(settings);
+        });
+
+        document.getElementById('setting-visible').addEventListener('change', (e) => {
+          settings.visible = e.target.checked;
+          applySettings(settings);
+          saveSettings(settings);
+        });
+
+        // ── 텍스트 편집 모드 ──
+        const editBtn = document.getElementById('setting-edit-btn');
+        let editMode = false;
+        const pillEl = document.getElementById('vtuber-status-text');
+
+        editBtn.addEventListener('click', () => {
+          editMode = !editMode;
+          if (editMode) {
+            pillEl.contentEditable = 'true';
+            pillEl.style.cursor = 'text';
+            pillEl.style.outline = '1px dashed rgba(255,255,255,0.5)';
+            pillEl.style.minWidth = '100px';
+            overlay.classList.add('visible');
+            if (!pillEl.textContent.trim()) pillEl.textContent = '편집하세요...';
+            pillEl.focus();
+            editBtn.textContent = '✅ 편집 완료';
+            editBtn.style.background = 'rgba(76,175,80,0.3)';
+            // 편집 중엔 WS 상태 업데이트 차단
+            window._statusEditMode = true;
+          } else {
+            pillEl.contentEditable = 'false';
+            pillEl.style.cursor = 'move';
+            pillEl.style.outline = 'none';
+            pillEl.style.minWidth = '';
+            editBtn.textContent = '✏️ 텍스트 편집';
+            editBtn.style.background = 'rgba(255,255,255,0.1)';
+            window._statusEditMode = false;
+          }
+        });
+      })();
+
+      // ══════════════════════════════════════════════════════════════
       // ── Live2D Position Reset ──
+      // ══════════════════════════════════════════════════════════════
       document.getElementById('live2d-reset-btn').addEventListener('click', () => {
+        // localStorage 클리어
+        localStorage.removeItem('live2d-transform');
+        
+        // 위치 리셋
         window.resetLive2DPosition?.();
-        // Fallback: directly manipulate model matrix
         const mgr = window.getLive2DManager?.();
         if (mgr) {
           const model = mgr.getModel(0);
           if (model && model._modelMatrix) {
             const arr = model._modelMatrix.getArray();
-            // Reset translation to center
-            arr[12] = 0;
-            arr[13] = 0;
-            // Reset scale to default (2.0 for nice size)
-            arr[0] = 2.0;
-            arr[5] = 2.0;
+            arr[12] = 0;  // translateX
+            arr[13] = 0;  // translateY
+            arr[0] = 2.0;  // scaleX
+            arr[5] = 2.0;  // scaleY
             model._modelMatrix.setMatrix(arr);
+            console.log('[Live2D] Position reset');
           }
         }
       });
 
+      // ══════════════════════════════════════════════════════════════
       // ── A2F → Live2D Parameter Provider ──
-      // Provides window._a2fGetFrame() called directly from inside
-      // LAppModel.update() in the bundle (injected before this._model.update()).
-      // No monkey-patching needed — runs at exactly the right time every frame.
+      // ══════════════════════════════════════════════════════════════
       window._a2fGetFrame = function() {
-        // Source 1: use-audio-task.ts (audio playback A2F)
         const frames1 = window.a2fCurrentFrames;
         const audio = window.a2fCurrentAudio;
         if (frames1 && audio && !audio.paused) {
@@ -154,7 +648,6 @@
           const idx = Math.min(Math.floor(audio.currentTime * fps), frames1.length - 1);
           if (idx >= 0 && frames1[idx]?.params) return frames1[idx].params;
         }
-        // Source 2: bridge WS (real-time A2F from a2f-ws-bridge.py)
         const frames2 = window.a2fBridgeFrames;
         if (frames2 && frames2.length > 0) {
           const fps = window.a2fBridgeFps || 30;
@@ -167,9 +660,26 @@
         }
         return null;
       };
-      console.log('[A2F] _a2fGetFrame provider registered — injected into LAppModel.update()');
+      console.log('[A2F] _a2fGetFrame provider registered');
 
-      // Expose global function
+      // ── Force buttons on top of canvas ──
+      (function() {
+        function fixStacking() {
+          // Find all canvases and ensure they don't block our buttons
+          document.querySelectorAll('canvas').forEach(c => {
+            c.style.zIndex = '1';
+          });
+          // Force our buttons above everything
+          ['status-settings-btn', 'live2d-reset-btn', 'status-settings-panel', 'vtuber-status-overlay'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.zIndex = '999999';
+          });
+        }
+        // Run repeatedly since React may re-render
+        setInterval(fixStacking, 1000);
+        setTimeout(fixStacking, 500);
+      })();
+
       window.resetLive2DPosition = function() {
         const mgr = window.getLive2DManager?.();
         if (mgr) {
