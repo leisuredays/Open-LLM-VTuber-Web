@@ -3,11 +3,187 @@
   <head>
     <meta charset="UTF-8" />
     <title>Open-LLM-Vtuber</title>
-    <script type="module" crossorigin src="./assets/main-CKgUHFa9.js"></script>
+    <script type="module" crossorigin src="./assets/main-CSnAiloz.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/main-QEkl09-0.css">
+    <style>
+      /* ── VTuber Status Overlay ── */
+      #vtuber-status-overlay {
+        position: fixed;
+        top: 18px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9999;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+        opacity: 0;
+      }
+      #vtuber-status-overlay.visible {
+        opacity: 1;
+      }
+      #vtuber-status-overlay .status-pill {
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(8px);
+        color: #fff;
+        font-size: 14px;
+        padding: 6px 16px;
+        border-radius: 20px;
+        white-space: nowrap;
+        pointer-events: auto;
+        cursor: move;
+        user-select: none;
+      }
+
+      /* ── Live2D Reset Button ── */
+      #live2d-reset-btn {
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        z-index: 9999;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(8px);
+        color: #fff;
+        font-size: 18px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+      }
+      #live2d-reset-btn:hover {
+        background: rgba(0, 0, 0, 0.8);
+      }
+    </style>
   </head>
 
   <body>
     <div id="root"></div>
+
+    <!-- VTuber Status Overlay (생각 중 / 도구 실행 표시) -->
+    <div id="vtuber-status-overlay">
+      <div class="status-pill" id="vtuber-status-text"></div>
+    </div>
+
+    <!-- Live2D Position Reset Button -->
+    <button id="live2d-reset-btn" title="Live2D 위치 리셋">↺</button>
+
+    <script>
+      // ── Status Overlay (draggable) ──
+      (function() {
+        const overlay = document.getElementById('vtuber-status-overlay');
+        const textEl = document.getElementById('vtuber-status-text');
+        let isDragging = false, offsetX = 0, offsetY = 0;
+
+        overlay.addEventListener('mousedown', (e) => {
+          isDragging = true;
+          offsetX = e.clientX - overlay.getBoundingClientRect().left;
+          offsetY = e.clientY - overlay.getBoundingClientRect().top;
+          overlay.style.transition = 'none';
+        });
+        document.addEventListener('mousemove', (e) => {
+          if (!isDragging) return;
+          overlay.style.left = (e.clientX - offsetX) + 'px';
+          overlay.style.top = (e.clientY - offsetY) + 'px';
+          overlay.style.transform = 'none';
+        });
+        document.addEventListener('mouseup', () => { isDragging = false; });
+
+        // Connect to A2F WS bridge for status updates
+        function connectStatusWS() {
+          const wsUrl = 'ws://' + window.location.hostname + ':9870';
+          const ws = new WebSocket(wsUrl);
+          ws.onmessage = (event) => {
+            try {
+              const msg = JSON.parse(event.data);
+              if (msg.type === 'status') {
+                const text = msg.status || '';
+                textEl.textContent = text;
+                if (text) {
+                  overlay.classList.add('visible');
+                } else {
+                  overlay.classList.remove('visible');
+                }
+              }
+              // A2F frames handling (for lip sync)
+              if (msg.type === 'a2f-frames' && msg.frames) {
+                window.a2fBridgeFrames = msg.frames;
+                window.a2fBridgeFps = msg.fps || 30;
+                window.a2fBridgeStartTime = performance.now();
+              }
+            } catch(e) {}
+          };
+          ws.onclose = () => setTimeout(connectStatusWS, 3000);
+          ws.onerror = () => ws.close();
+        }
+        connectStatusWS();
+      })();
+
+      // ── Live2D Position Reset ──
+      document.getElementById('live2d-reset-btn').addEventListener('click', () => {
+        window.resetLive2DPosition?.();
+        // Fallback: directly manipulate model matrix
+        const mgr = window.getLive2DManager?.();
+        if (mgr) {
+          const model = mgr.getModel(0);
+          if (model && model._modelMatrix) {
+            const arr = model._modelMatrix.getArray();
+            // Reset translation to center
+            arr[12] = 0;
+            arr[13] = 0;
+            // Reset scale to default (2.0 for nice size)
+            arr[0] = 2.0;
+            arr[5] = 2.0;
+            model._modelMatrix.setMatrix(arr);
+          }
+        }
+      });
+
+      // ── A2F → Live2D Parameter Provider ──
+      // Provides window._a2fGetFrame() called directly from inside
+      // LAppModel.update() in the bundle (injected before this._model.update()).
+      // No monkey-patching needed — runs at exactly the right time every frame.
+      window._a2fGetFrame = function() {
+        // Source 1: use-audio-task.ts (audio playback A2F)
+        const frames1 = window.a2fCurrentFrames;
+        const audio = window.a2fCurrentAudio;
+        if (frames1 && audio && !audio.paused) {
+          const fps = window.a2fCurrentFps || 30;
+          const idx = Math.min(Math.floor(audio.currentTime * fps), frames1.length - 1);
+          if (idx >= 0 && frames1[idx]?.params) return frames1[idx].params;
+        }
+        // Source 2: bridge WS (real-time A2F from a2f-ws-bridge.py)
+        const frames2 = window.a2fBridgeFrames;
+        if (frames2 && frames2.length > 0) {
+          const fps = window.a2fBridgeFps || 30;
+          const elapsed = (performance.now() - (window.a2fBridgeStartTime || 0)) / 1000;
+          const idx = Math.min(Math.floor(elapsed * fps), frames2.length - 1);
+          if (idx >= 0 && frames2[idx]?.params) {
+            if (idx >= frames2.length - 1) window.a2fBridgeFrames = null;
+            return frames2[idx].params;
+          }
+        }
+        return null;
+      };
+      console.log('[A2F] _a2fGetFrame provider registered — injected into LAppModel.update()');
+
+      // Expose global function
+      window.resetLive2DPosition = function() {
+        const mgr = window.getLive2DManager?.();
+        if (mgr) {
+          const model = mgr.getModel(0);
+          if (model && model._modelMatrix) {
+            const arr = model._modelMatrix.getArray();
+            arr[12] = 0;
+            arr[13] = 0;
+            arr[0] = 2.0;
+            arr[5] = 2.0;
+            model._modelMatrix.setMatrix(arr);
+          }
+        }
+      };
+    </script>
   </body>
 </html>
