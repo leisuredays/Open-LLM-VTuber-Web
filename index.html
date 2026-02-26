@@ -14,8 +14,7 @@
       #vtuber-status-overlay {
         position: fixed;
         top: 18px;
-        left: 50%;
-        transform: translateX(-50%);
+        left: 18px;
         z-index: 9999;
         pointer-events: none;
         transition: opacity 0.3s ease;
@@ -31,38 +30,17 @@
         font-size: 14px;
         padding: 6px 16px;
         border-radius: 20px;
-        white-space: nowrap;
         pointer-events: auto;
         cursor: move;
         user-select: none;
         position: relative;
-      }
-      /* removed resize handle - using scroll instead */
-
-      /* ── Live2D Reset Button ── */
-      #live2d-reset-btn {
-        position: fixed;
-        top: 12px;
-        right: 12px;
-        z-index: 99999;
-        pointer-events: auto;
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        border: none;
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(8px);
-        color: #fff;
-        font-size: 18px;
-        cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: background 0.2s;
+        text-align: center;
+        word-break: break-word;
       }
-      #live2d-reset-btn:hover {
-        background: rgba(0, 0, 0, 0.8);
-      }
+      /* drag handle for resize in bottom-right corner */
 
       /* ── Status Settings Button ── */
       #status-settings-btn {
@@ -168,47 +146,68 @@
       <div class="status-pill" id="vtuber-status-text"></div>
     </div>
 
-    <!-- Live2D Position Reset Button -->
-    <button id="live2d-reset-btn" title="Live2D 위치 리셋">↺</button>
-
     <!-- Status Settings Button -->
     <button id="status-settings-btn" title="상태 표시 설정">⚙️</button>
 
     <!-- Status Settings Panel -->
     <div id="status-settings-panel">
       <h3>상태 표시 설정</h3>
-      
-      <label>배경색</label>
-      <div class="settings-row">
-        <input type="color" id="setting-bg-color" value="#000000">
-        <label style="margin: 0;">투명도</label>
-        <input type="range" id="setting-bg-opacity" min="0" max="100" value="70" style="width: 100px;">
-        <span id="opacity-value">70%</span>
-      </div>
-
-      <label>글자색</label>
-      <input type="color" id="setting-text-color" value="#ffffff">
-
-      <label>글자 크기 (px)</label>
-      <input type="number" id="setting-font-size" min="10" max="30" value="14">
-
-      <label>위치</label>
-      <select id="setting-position">
-        <option value="top">상단</option>
-        <option value="bottom">하단</option>
-      </select>
-
-      <div class="settings-row" style="margin-top: 12px;">
-        <input type="checkbox" id="setting-visible" checked>
-        <label style="margin: 0;">상태 표시 보이기</label>
-      </div>
 
       <button id="setting-edit-btn" style="
-        margin-top: 10px; width: 100%; padding: 6px 12px;
+        width: 100%; padding: 6px 12px;
         border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
         background: rgba(255,255,255,0.1); color: #fff;
         cursor: pointer; font-size: 13px;
       ">✏️ 텍스트 편집</button>
+
+      <button id="setting-reset-model-btn" style="
+        margin-top: 8px; width: 100%; padding: 6px 12px;
+        border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
+        background: rgba(255,255,255,0.1); color: #fff;
+        cursor: pointer; font-size: 13px;
+      ">↺ 모델 위치 리셋</button>
+
+    </div>
+
+    <!-- Edit Settings Sub-Panel (appears next to main panel) -->
+    <div id="edit-settings-group" style="
+      display: none;
+      position: fixed;
+      bottom: 60px;
+      left: 300px;
+      z-index: 100000;
+      pointer-events: auto;
+      background: rgba(20, 20, 20, 0.95);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 16px;
+      min-width: 240px;
+      color: #fff;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 13px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    ">
+      <h3 style="margin: 0 0 12px 0; font-size: 15px; font-weight: 600;">텍스트 스타일</h3>
+
+      <label style="display: block; margin: 10px 0 4px 0; font-size: 12px; opacity: 0.8;">배경색</label>
+      <div class="settings-row">
+        <input type="color" id="setting-bg-color" value="#000000">
+        <label style="margin: 0;">투명도</label>
+        <input type="range" id="setting-bg-opacity" min="0" max="100" value="70" style="width: 100px;">
+        <span id="opacity-value" style="min-width: 36px; text-align: right;">70%</span>
+      </div>
+
+      <label style="display: block; margin: 10px 0 4px 0; font-size: 12px; opacity: 0.8;">글자색</label>
+      <input type="color" id="setting-text-color" value="#ffffff" style="width: 100%; margin-bottom: 8px;">
+
+      <label style="display: block; margin: 10px 0 4px 0; font-size: 12px; opacity: 0.8;">글자 크기 (px)</label>
+      <input type="number" id="setting-font-size" min="10" max="30" value="14" style="width: 100%; margin-bottom: 8px; padding: 4px 8px; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; background: rgba(255,255,255,0.1); color: #fff;">
+
+      <div class="settings-row" style="margin-top: 12px;">
+        <input type="checkbox" id="setting-visible" checked style="margin-right: 6px; cursor: pointer;">
+        <label style="margin: 0;">상태 표시 보이기</label>
+      </div>
     </div>
 
     <script>
@@ -260,12 +259,12 @@
             };
 
             // 변경 감지
-            if (!lastMatrix || 
+            if (!lastMatrix ||
                 Math.abs(lastMatrix.scaleX - current.scaleX) > 0.001 ||
                 Math.abs(lastMatrix.scaleY - current.scaleY) > 0.001 ||
                 Math.abs(lastMatrix.translateX - current.translateX) > 0.001 ||
                 Math.abs(lastMatrix.translateY - current.translateY) > 0.001) {
-              
+
               localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
               lastMatrix = current;
             }
@@ -322,22 +321,40 @@
           localStorage.setItem(POSITION_KEY, JSON.stringify(pos));
         }
 
-        // Scroll to resize pill
-        pill.addEventListener('wheel', (e) => {
-          e.preventDefault();
-          const cs = getComputedStyle(pill);
-          const curFs = parseFloat(cs.fontSize);
-          const curPadV = parseFloat(cs.paddingTop);
-          const curPadH = parseFloat(cs.paddingLeft);
-          const delta = e.deltaY > 0 ? -1 : 1;
-          const newFs = Math.max(8, Math.min(40, curFs + delta));
-          const ratio = newFs / curFs;
-          pill.style.fontSize = newFs + 'px';
-          pill.style.padding = Math.round(curPadV * ratio) + 'px ' + Math.round(curPadH * ratio) + 'px';
-          savePillSize();
-        }, { passive: false });
+        // Drag-to-resize pill box (width/height only, text stays same)
+        pill.style.overflow = 'hidden';
+        pill.style.resize = 'both';
+        pill.style.minWidth = '50px';
+        pill.style.minHeight = '20px';
+
+        // Save/restore pill box size
+        function savePillBoxSize() {
+          localStorage.setItem(SIZE_KEY, JSON.stringify({
+            width: pill.style.width,
+            height: pill.style.height
+          }));
+        }
+        function restorePillBoxSize() {
+          const saved = localStorage.getItem(SIZE_KEY);
+          if (saved) {
+            try {
+              const s = JSON.parse(saved);
+              if (s.width) pill.style.width = s.width;
+              if (s.height) pill.style.height = s.height;
+            } catch(e) {}
+          }
+        }
+        restorePillBoxSize();
+
+        // Observe resize changes to save
+        const resizeObserver = new ResizeObserver(() => savePillBoxSize());
+        resizeObserver.observe(pill);
 
         overlay.addEventListener('mousedown', (e) => {
+          // Skip drag if clicking on resize handle area (bottom-right 16px of pill)
+          const pillRect = pill.getBoundingClientRect();
+          const inResizeZone = (e.clientX > pillRect.right - 16) && (e.clientY > pillRect.bottom - 16);
+          if (inResizeZone) return;
           isDragging = true;
           offsetX = e.clientX - overlay.getBoundingClientRect().left;
           offsetY = e.clientY - overlay.getBoundingClientRect().top;
@@ -358,40 +375,20 @@
           }
         });
 
-        // Pill size save/restore
-        function savePillSize() {
-          const cs = getComputedStyle(pill);
-          localStorage.setItem(SIZE_KEY, JSON.stringify({
-            fontSize: cs.fontSize,
-            padding: cs.padding
-          }));
-        }
-        function restorePillSize() {
-          const saved = localStorage.getItem(SIZE_KEY);
-          if (saved) {
-            try {
-              const s = JSON.parse(saved);
-              pill.style.fontSize = s.fontSize;
-              pill.style.padding = s.padding;
-            } catch(e) {}
-          }
-        }
-
         restorePosition();
-        restorePillSize();
 
         // WebSocket 연결 (상태 업데이트)
         function connectStatusWS() {
           const wsUrl = 'ws://' + window.location.hostname + ':9870';
           const ws = new WebSocket(wsUrl);
-          
+
           ws.onmessage = (event) => {
             try {
               const msg = JSON.parse(event.data);
               if (msg.type === 'status' && !window._statusEditMode) {
                 const text = msg.status || '';
                 textEl.textContent = text;
-                if (text) {
+                if (text && overlay.dataset.userVisible !== '0') {
                   overlay.classList.add('visible');
                 } else {
                   overlay.classList.remove('visible');
@@ -404,7 +401,7 @@
               }
             } catch(e) {}
           };
-          
+
           ws.onclose = () => setTimeout(connectStatusWS, 3000);
           ws.onerror = () => ws.close();
         }
@@ -448,24 +445,16 @@
           const rgb = hexToRgb(settings.bgColor);
           const alpha = settings.bgOpacity / 100;
           pill.style.background = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
-          
+
           // 글자색
           pill.style.color = settings.textColor;
-          
+
           // 글자 크기
           pill.style.fontSize = settings.fontSize + 'px';
-          
-          // 위치
-          if (settings.position === 'top') {
-            overlay.style.top = '18px';
-            overlay.style.bottom = 'auto';
-          } else {
-            overlay.style.top = 'auto';
-            overlay.style.bottom = '18px';
-          }
-          
-          // 표시 여부
-          overlay.style.display = settings.visible ? 'block' : 'none';
+
+          // 표시 여부 (visibility만 변경, display는 WS 상태가 제어)
+          overlay.dataset.userVisible = settings.visible ? '1' : '0';
+          if (!settings.visible) overlay.classList.remove('visible');
         }
 
         // UI 업데이트
@@ -475,7 +464,6 @@
           document.getElementById('opacity-value').textContent = settings.bgOpacity + '%';
           document.getElementById('setting-text-color').value = settings.textColor;
           document.getElementById('setting-font-size').value = settings.fontSize;
-          document.getElementById('setting-position').value = settings.position;
           document.getElementById('setting-visible').checked = settings.visible;
         }
 
@@ -516,15 +504,22 @@
           }
         });
 
+        const editGroup = document.getElementById('edit-settings-group');
+
         panel.addEventListener('click', (e) => {
+          e.stopPropagation();
+        });
+        editGroup.addEventListener('click', (e) => {
           e.stopPropagation();
         });
 
         // 패널 외부 클릭시 닫기
         document.addEventListener('click', (e) => {
-          if (_panelOpen && !panel.contains(e.target) && !btn.contains(e.target)) {
+          if (_panelOpen && !panel.contains(e.target) && !btn.contains(e.target) && !editGroup.contains(e.target)) {
             _panelOpen = false;
             panel.style.display = 'none';
+            // 편집 모드도 종료
+            if (editMode) editBtn.click();
           }
         });
 
@@ -554,12 +549,6 @@
           saveSettings(settings);
         });
 
-        document.getElementById('setting-position').addEventListener('change', (e) => {
-          settings.position = e.target.value;
-          applySettings(settings);
-          saveSettings(settings);
-        });
-
         document.getElementById('setting-visible').addEventListener('change', (e) => {
           settings.visible = e.target.checked;
           applySettings(settings);
@@ -571,6 +560,7 @@
         let editMode = false;
         const pillEl = document.getElementById('vtuber-status-text');
 
+        const editSettingsGroup = document.getElementById('edit-settings-group');
         editBtn.addEventListener('click', () => {
           editMode = !editMode;
           if (editMode) {
@@ -583,7 +573,7 @@
             pillEl.focus();
             editBtn.textContent = '✅ 편집 완료';
             editBtn.style.background = 'rgba(76,175,80,0.3)';
-            // 편집 중엔 WS 상태 업데이트 차단
+            editSettingsGroup.style.display = 'block';
             window._statusEditMode = true;
           } else {
             pillEl.contentEditable = 'false';
@@ -592,29 +582,27 @@
             pillEl.style.minWidth = '';
             editBtn.textContent = '✏️ 텍스트 편집';
             editBtn.style.background = 'rgba(255,255,255,0.1)';
+            editSettingsGroup.style.display = 'none';
             window._statusEditMode = false;
           }
         });
       })();
 
       // ══════════════════════════════════════════════════════════════
-      // ── Live2D Position Reset ──
+      // ── Live2D Position Reset (in settings panel) ──
       // ══════════════════════════════════════════════════════════════
-      document.getElementById('live2d-reset-btn').addEventListener('click', () => {
-        // localStorage 클리어
+      document.getElementById('setting-reset-model-btn').addEventListener('click', () => {
         localStorage.removeItem('live2d-transform');
-        
-        // 위치 리셋
         window.resetLive2DPosition?.();
         const mgr = window.getLive2DManager?.();
         if (mgr) {
           const model = mgr.getModel(0);
           if (model && model._modelMatrix) {
             const arr = model._modelMatrix.getArray();
-            arr[12] = 0;  // translateX
-            arr[13] = 0;  // translateY
-            arr[0] = 2.0;  // scaleX
-            arr[5] = 2.0;  // scaleY
+            arr[12] = 0;
+            arr[13] = 0;
+            arr[0] = 2.0;
+            arr[5] = 2.0;
             model._modelMatrix.setMatrix(arr);
             console.log('[Live2D] Position reset');
           }
