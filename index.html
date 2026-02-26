@@ -6,23 +6,7 @@
     <script type="module" crossorigin src="./assets/main-CSnAiloz.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/main-QEkl09-0.css">
     <style>
-      /* ── Hide React Chat UI (keep only Live2D canvas) ── */
-      #root {
-        pointer-events: none !important;
-        z-index: 0 !important;
-      }
-      #root * {
-        visibility: hidden !important;
-        pointer-events: none !important;
-      }
-      #root canvas {
-        visibility: visible !important;
-        pointer-events: auto !important;
-        position: relative !important;
-        z-index: 1 !important;
-      }
-      /* Hide toast notifications */
-      .Toastify, [class*="Toastify"] {
+      .Toastify {
         display: none !important;
       }
 
@@ -662,23 +646,7 @@
       };
       console.log('[A2F] _a2fGetFrame provider registered');
 
-      // ── Force buttons on top of canvas ──
-      (function() {
-        function fixStacking() {
-          // Find all canvases and ensure they don't block our buttons
-          document.querySelectorAll('canvas').forEach(c => {
-            c.style.zIndex = '1';
-          });
-          // Force our buttons above everything
-          ['status-settings-btn', 'live2d-reset-btn', 'status-settings-panel', 'vtuber-status-overlay'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.style.zIndex = '999999';
-          });
-        }
-        // Run repeatedly since React may re-render
-        setInterval(fixStacking, 1000);
-        setTimeout(fixStacking, 500);
-      })();
+      // Sidebar default: collapsed (patched in main-CSnAiloz.js useState(!0) → useState(!1))
 
       window.resetLive2DPosition = function() {
         const mgr = window.getLive2DManager?.();
